@@ -17,37 +17,68 @@ from pathlib import Path
 # data_path = "/home/marcelr/uha_test_policy/finetune_data/delta_des_joint_state_euler"
 # data_path = "/media/irl-admin/93a784d0-a1be-419e-99bd-9b2cd9df02dc1/preprocessed_data/upgraded_lab/quaternions_fixed/sim_to_polymetis/delta_des_joint_state"
 
-
-features=tfds.features.FeaturesDict({
-    'steps': tfds.features.Dataset(
-        {
-            'is_first': tf.bool,
-            'is_last': tf.bool,
-            'observation': tfds.features.FeaturesDict({
-                'state': tfds.features.Tensor(shape=(14,), dtype=tf.float32),
-                'images_top': tfds.features.Image(shape=(224, 224, 3), dtype=np.uint8), #(340, 420, 3)
-                'images_wrist_left': tfds.features.Image(shape=(224, 224, 3), dtype=np.uint8),
-                'images_wrist_right': tfds.features.Image(shape=(224, 224, 3), dtype=np.uint8),
-            }),
-            'action': tfds.features.Tensor(shape=(14,), dtype=tf.float32),
-            'reward': tfds.features.Tensor(shape=(), dtype=tf.float32),
-            'timestamp': tfds.features.Tensor(shape=(), dtype=tf.float32),
-            'frame_index': tfds.features.Tensor(shape=(), dtype=tf.int32),
-            'is_terminal': tfds.features.Tensor(shape=(), dtype=tf.bool),
-            'language_instruction': tfds.features.Text(),
-            'discount': tfds.features.Tensor(shape=(), dtype=tf.float32),
-        }
-    ),
-        'episode_metadata': tfds.features.FeaturesDict({
-        'file_path': tfds.features.Text(
-            doc='Path to the original data file.',
-        ),
-        'traj_length': tfds.features.Scalar(
-            dtype=np.float64,
-            doc='Number of samples in trajectorie'
-        )
-    }),
-}),
+features = {
+    "observation.state": {
+        "dtype": "float32",
+        "shape": (14,),
+    },
+    "observation.images_top": {
+        "dtype": "uint8",
+        "shape": (224, 224, 3),
+    },
+    "observation.images_wrist_left": {
+        "dtype": "uint8",
+        "shape": (224, 224, 3),
+    },
+    "observation.images_wrist_right": {
+        "dtype": "uint8",
+        "shape": (224, 224, 3),
+    },
+    "action": {
+        "dtype": "float32",
+        "shape": (14,),
+    },
+    # "reward": {
+    #     "dtype": "float32",
+    #     "shape": (),
+    # },
+    # "timestamp": {
+    #     "dtype": "float32",
+    #     "shape": (),
+    # },
+    # "frame_index": {
+    #     "dtype": "int32",
+    #     "shape": (),
+    # },
+    # "is_terminal": {
+    #     "dtype": "bool",
+    #     "shape": (),
+    # },
+    # "language_instruction": {
+    #     "dtype": "string",
+    #     "shape": (),
+    # },
+    # "discount": {
+    #     "dtype": "float32",
+    #     "shape": (),
+    # },
+    # "is_first": {
+    #     "dtype": "bool",
+    #     "shape": (),
+    # },
+    # "is_last": {
+    #     "dtype": "bool",
+    #     "shape": (),
+    # },
+    # "episode_metadata.file_path": {
+    #     "dtype": "string",
+    #     "shape": (),
+    # },
+    # "episode_metadata.traj_length": {
+    #     "dtype": "float64",
+    #     "shape": (),
+    # },
+}
 
 def _parse_example(episode_path, lerobot_dataset, embed=None):
     data = {}
@@ -189,47 +220,65 @@ def get_trajectorie_paths_recursive(directory, sub_dir_list):
 
 
 
+def generate_features_from_raw(builder: tfds.core.DatasetBuilder, use_videos: bool = True):
+    dataset_name = Path(builder.data_dir).parent.name
 
-def create_lerobot_dataset(
-    raw_dir: Path,
-    repo_id: str = None,
-    local_dir: Path = None,
-    push_to_hub: bool = False,
-    fps: int = None,
-    robot_type: str = None,
-    use_videos: bool = True,
-    image_writer_process: int = 5,
-    image_writer_threads: int = 10,
-    keep_images: bool = True,
-):
-   
-    version = ""
-    dataset_name = "name"
-    data_dir = raw_dir.parent
+    state_names = [f"motor_{i}" for i in range(8)]
+    if dataset_name in OXE_DATASET_CONFIGS:
+        state_encoding = OXE_DATASET_CONFIGS[dataset_name]["state_encoding"]
+        if state_encoding == StateEncoding.POS_EULER:
+            state_names = ["x", "y", "z", "roll", "pitch", "yaw", "pad", "gripper"]
+            if "libero" in dataset_name:
+                state_names = ["x", "y", "z", "roll", "pitch", "yaw", "gripper", "gripper"]  # 2D gripper state
+        elif state_encoding == StateEncoding.POS_QUAT:
+            state_names = ["x", "y", "z", "rx", "ry", "rz", "rw", "gripper"]
+        elif state_encoding == StateEncoding.JOINT:
+            state_names = [f"motor_{i}" for i in range(7)] + ["gripper"]
+            state_obs_keys = OXE_DATASET_CONFIGS[dataset_name]["state_obs_keys"]
+            pad_count = state_obs_keys[:-1].count(None)
+            state_names[-pad_count - 1 : -1] = ["pad"] * pad_count
+            state_names[-1] = "pad" if state_obs_keys[-1] is None else state_names[-1]
 
-  
-    local_dir = Path('/home/sihi/Desktop/Bachelor/lerobot_datasets')
-    local_dir /= f"{dataset_name}_{version}_lerobot"
-    if local_dir.exists():
-        shutil.rmtree(local_dir)
+    action_names = [f"motor_{i}" for i in range(8)]
+    if dataset_name in OXE_DATASET_CONFIGS:
+        action_encoding = OXE_DATASET_CONFIGS[dataset_name]["action_encoding"]
+        if action_encoding == ActionEncoding.EEF_POS:
+            action_names = ["x", "y", "z", "roll", "pitch", "yaw", "gripper"]
+        elif action_encoding == ActionEncoding.JOINT_POS:
+            action_names = [f"motor_{i}" for i in range(7)] + ["gripper"]
 
-    lerobot_dataset = LeRobotDataset.create(
-        repo_id=repo_id,
-        robot_type='stationary_aloha',
-        root=local_dir,
-        fps=fps,
-        use_videos=use_videos,
-        features=features,
-        image_writer_threads=2,
-        image_writer_processes=3,
-    )
+    DEFAULT_FEATURES = {
+        "observation.state": {
+            "dtype": "float32",
+            "shape": (len(state_names),),
+            "names": {"motors": state_names},
+        },
+        "action": {
+            "dtype": "float32",
+            "shape": (len(action_names),),
+            "names": {"motors": action_names},
+        },
+    }
+
+    obs = builder.info.features["steps"]["observation"]
+    features = {
+        f"observation.images.{key}": {
+            "dtype": "video" if use_videos else "image",
+            "shape": value.shape,
+            "names": ["height", "width", "rgb"],
+        }
+        for key, value in obs.items()
+        if "depth" not in key and any(x in key for x in ["image", "rgb"])
+    }
+    return {**features, **DEFAULT_FEATURES}
+
 
 if __name__ == "__main__":
     data_path = "/home/i53/student/shilber/delete/50_easy_transfer"
     #embed = hub.load("https://tfhub.dev/google/universal-sentence-encoder-large/5")
     # create list of all examples
     raw_dirs = []
-    get_trajectorie_paths_recursive(data_path, raw_dirs)
+    #get_trajectorie_paths_recursive(data_path, raw_dirs)
 
     #TODO create dataset
     version = ""
