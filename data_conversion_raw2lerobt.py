@@ -98,20 +98,21 @@ def _parse_example(episode_path, goal_dataset,embed=None):
 
         goal_dataset.add_frame(
            {
-                "image_top":  data['image_top'][i],
-        "image_left":data['image_wrist_left'][i],
-        "image_right": data['image_wrist_right'][i],
-        "state": observation_all_joint,
-        "actions": action_all_joint,
+                "observation.images.overhead_cam":  data['image_top'][i],
+        "observation.images.wrist_cam_left":data['image_wrist_left'][i],
+        "observation.images.wrist_cam_right": data['image_wrist_right'][i],
+        "observation.state": observation_all_joint,
+        "action": action_all_joint,
+        "task":"cube_transfer"
            }
        )
-        goal_dataset.save_episode(task="cube_transfer")
+    goal_dataset.save_episode()
 
 def create_img_vector(img_folder_path, trajectory_length):
     cam_list = []
   
     img_paths = glob.glob(os.path.join(img_folder_path, '*.jpg'))
-    img_paths = sorted(img_paths, key=lambda x: float(x))
+    img_paths = sorted(img_paths, key=lambda x: float(Path(x).stem))
    
     assert len(img_paths)==trajectory_length, "Number of images does not equal trajectory length!"
 
@@ -145,27 +146,27 @@ if __name__ == "__main__":
     robot_type="aloha",
     fps=50,
     features={
-        "image_top": {
+        "observation.images.overhead_cam": {
             "dtype": "image",
             "shape": (224, 224, 3),
             "names": ["height", "width", "channel"],
         },
-        "image_left": {
+        "observation.images.wrist_cam_left": {
             "dtype": "image",
             "shape": (224, 224, 3),
             "names": ["height", "width", "channel"],
         },
-        "image_right": {
+        "observation.images.wrist_cam_right": {
             "dtype": "image",
             "shape": (224,224, 3),
             "names": ["height", "width", "channel"],
         },
-        "state": {
+        "observation.state": {
             "dtype": "float32",
             "shape": (14,),
             "names": ["state"],
         },
-        "actions": {
+        "action": {
             "dtype": "float32",
             "shape": (14,),
             "names": ["actions"],
@@ -177,6 +178,5 @@ if __name__ == "__main__":
 
 
     for trajectorie_path in tqdm(raw_dirs):
-        _, sample = _parse_example(trajectorie_path, goal_dataset)
+        _parse_example(trajectorie_path, goal_dataset)
         #print(sample)
-    goal_dataset.consolidate(run_compute_stats=False)

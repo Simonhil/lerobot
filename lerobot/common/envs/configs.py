@@ -42,7 +42,7 @@ class EnvConfig(draccus.ChoiceRegistry, abc.ABC):
 class AlohaEnv(EnvConfig):
     task: str = "AlohaInsertion-v0"
     fps: int = 50
-    episode_length: int = 400
+    episode_length: int = 1000
     obs_type: str = "pixels_agent_pos"
     render_mode: str = "rgb_array"
     features: dict[str, PolicyFeature] = field(
@@ -54,17 +54,23 @@ class AlohaEnv(EnvConfig):
         default_factory=lambda: {
             "action": ACTION,
             "agent_pos": OBS_ROBOT,
-            "top": f"{OBS_IMAGE}.top",
-            "pixels/top": f"{OBS_IMAGES}.top",
+            "pixels/overhead_cam": f"{OBS_IMAGES}.overhead_cam",
+            "pixels/wrist_cam_left": f"{OBS_IMAGES}.wrist_cam_left",
+            "pixels/wrist_cam_right": f"{OBS_IMAGES}.wrist_cam_right",
         }
     )
 
     def __post_init__(self):
         if self.obs_type == "pixels":
-            self.features["top"] = PolicyFeature(type=FeatureType.VISUAL, shape=(480, 640, 3))
+            self.features["pixels/overhead_cam"] = PolicyFeature(type=FeatureType.VISUAL, shape=(224, 224, 3))
+            self.features["pixels/wrist_cam_left"] = PolicyFeature(type=FeatureType.VISUAL, shape=(224, 224, 3))
+            self.features["pixels/wrist_cam_right"] = PolicyFeature(type=FeatureType.VISUAL, shape=(224, 224, 3))
+
         elif self.obs_type == "pixels_agent_pos":
             self.features["agent_pos"] = PolicyFeature(type=FeatureType.STATE, shape=(14,))
-            self.features["pixels/top"] = PolicyFeature(type=FeatureType.VISUAL, shape=(480, 640, 3))
+            self.features["pixels/overhead_cam"] = PolicyFeature(type=FeatureType.VISUAL, shape=(224, 224, 3))
+            self.features["pixels/wrist_cam_left"] = PolicyFeature(type=FeatureType.VISUAL, shape=(224, 224, 3))
+            self.features["pixels/wrist_cam_right"] = PolicyFeature(type=FeatureType.VISUAL, shape=(224, 224, 3))
 
     @property
     def gym_kwargs(self) -> dict:
