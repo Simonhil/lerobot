@@ -57,6 +57,7 @@ from pathlib import Path
 from pprint import pformat
 from typing import Callable
 
+import cv2
 import einops
 import gymnasium as gym
 import numpy as np
@@ -65,6 +66,7 @@ from termcolor import colored
 from torch import Tensor, nn
 from tqdm import trange
 
+from lerobot.common.datasets.lerobot_dataset import LeRobotDataset, LeRobotDatasetMetadata
 from lerobot.common.envs.factory import make_env
 from lerobot.common.envs.utils import add_envs_task, check_env_attributes_and_types, preprocess_observation
 from lerobot.common.policies.factory import make_policy
@@ -119,6 +121,23 @@ def rollout(
     Returns:
         The dictionary described above.
     """
+
+    def load_lerobot():
+        repo_id = "simon/aloha_cube_transfer"
+        data=LeRobotDataset(repo_id)
+        meta_data = LeRobotDatasetMetadata(repo_id)
+        print(meta_data)
+
+        return  data
+
+    data = load_lerobot()
+
+
+
+
+
+
+
     assert isinstance(policy, nn.Module), "Policy must be a PyTorch nn module."
     device = get_device_from_parameters(policy)
 
@@ -148,9 +167,21 @@ def rollout(
     while not np.all(done):
         # Numpy array to tensor and changing dictionary keys to LeRobot policy format.
         observation = preprocess_observation(observation)
-        if return_observations:
-            all_observations.append(deepcopy(observation))
+    
+        def show_images(images):
 
+            # Show with OpenCV
+            scale_factor = 0.75
+            combined = np.concatenate(list(images.values()), axis=1)
+            #resized = cv2.resize(combined, None, fx=scale_factor, fy=scale_factor, interpolation=cv2.INTER_LINEAR)
+            cv2.imshow("Multi-Camera Views", combined [..., ::-1])  # RGB to BGR
+
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                pass
+        show_images({"t":observation['observation.images.overhead_cam']})
+        print(observation.keys())
+    #     if return_observations:
+    #         all_observations.append(deepcopy(observation))
         observation = {
             key: observation[key].to(device, non_blocking=device.type == "cuda") for key in observation
         }
@@ -168,7 +199,11 @@ def rollout(
 
         # Apply the next action.
         action =np.asarray(torch.tensor(action))
-        observation, reward, terminated, truncated, info = env.step(action)
+
+        # for i in range(0,len(data)):
+        #     action_all_joint = [data[i]['action']]
+        #     observation, reward, terminated, truncated, info = env.step(action_all_joint)
+        observation, reward, terminated, truncated, info = env.step(action) 
         if render_callback is not None:
             render_callback(env)
 

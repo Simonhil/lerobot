@@ -38,7 +38,7 @@ def _parse_example(episode_path, goal_dataset,embed=None):
     
     for feature in list(data.keys()):
         for i in range(len(data[feature])):
-            data[f'delta_{feature}'] = torch.zeros_like(data[feature])
+            data[f'delta_{feature}'] = torch.zeros_like(torch.tensor(data[feature]))
             if i == 0:
                 data[f'delta_{feature}'][i] = 0
             else:
@@ -85,16 +85,11 @@ def _parse_example(episode_path, goal_dataset,embed=None):
         action_all_joint = torch.zeros(14)
         observation_all_joint = torch.zeros(14)
 
-        action_all_joint[:6] = data['leader_joint_pos'][i][:6]
-        action_all_joint[6] = data['leader_gripper_joint'][i][0]
-        action_all_joint[7:13] = data['leader_joint_pos'][i][6:]
-        action_all_joint[13] = data['leader_gripper_joint'][i][1]
+        action_all_joint = data['leader_joint_pos'][i]
+    
 
 
-        observation_all_joint[:6] = data['follower_joint_pos'][i][:6]
-        observation_all_joint[6] = data['follower_gripper_joint'][i][0]
-        observation_all_joint[7:13] = data['follower_joint_pos'][i][6:]
-        observation_all_joint[13] = data['follower_gripper_joint'][i][1]
+        observation_all_joint = data['follower_joint_pos'][i]
 
         goal_dataset.add_frame(
            {
@@ -121,6 +116,7 @@ def create_img_vector(img_folder_path, trajectory_length):
         cam_list.append(img_array)
     return cam_list
 
+
 def get_trajectorie_paths_recursive(directory, sub_dir_list):
     for entry in os.listdir(directory):
         full_path = os.path.join(directory, entry)
@@ -128,7 +124,7 @@ def get_trajectorie_paths_recursive(directory, sub_dir_list):
             sub_dir_list.append(directory) if entry == "images" else get_trajectorie_paths_recursive(full_path, sub_dir_list)
 
 if __name__ == "__main__":
-    data_path = "/home/i53/student/shilber/delete/50_easy_transfer"
+    data_path = "/home/i53/student/shilber/Downloads/Simulation/cube_transfer_right_2_left_50"
     #embed = hub.load("https://tfhub.dev/google/universal-sentence-encoder-large/5")
     # create list of all examples
     repo_name = "simon/aloha_cube_transfer"
@@ -162,12 +158,12 @@ if __name__ == "__main__":
             "names": ["height", "width", "channel"],
         },
         "observation.state": {
-            "dtype": "float32",
+            "dtype": "float64",
             "shape": (14,),
             "names": ["state"],
         },
         "action": {
-            "dtype": "float32",
+            "dtype": "float64",
             "shape": (14,),
             "names": ["actions"],
         },
