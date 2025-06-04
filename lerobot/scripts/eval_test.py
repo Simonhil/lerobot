@@ -168,17 +168,25 @@ def rollout(
         # Numpy array to tensor and changing dictionary keys to LeRobot policy format.
         observation = preprocess_observation(observation)
     
-        def show_images(images):
+        def show_images(image):
 
             # Show with OpenCV
             scale_factor = 0.75
-            combined = np.concatenate(list(images.values()), axis=1)
-            #resized = cv2.resize(combined, None, fx=scale_factor, fy=scale_factor, interpolation=cv2.INTER_LINEAR)
-            cv2.imshow("Multi-Camera Views", combined [..., ::-1])  # RGB to BGR
+            image = image.squeeze(0)  # Remove batch dimension => [3, 224, 224]
+            image = image.permute(1, 2, 0)  # CHW to HWC => [224, 224, 3]
 
+            # Convert to NumPy
+            image = image.numpy()
+
+            # Assume image is in [0, 1] float range — convert to [0, 255] uint8
+            image = (image * 255).astype(np.uint8)
+            # combined = np.concatenate(list(image.values()), axis=1)
+            # resized = cv2.resize(combined, None, fx=scale_factor, fy=scale_factor, interpolation=cv2.INTER_LINEAR)
+            cv2.imshow("Multi-Camera Views", image)  # RGB to BGR
+            cv2.imwrite(Path("/home/simon/delete/v5.jpg"), image)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 pass
-        show_images({"t":observation['observation.images.overhead_cam']})
+        show_images(observation['observation.images.overhead_cam'])
         print(observation.keys())
     #     if return_observations:
     #         all_observations.append(deepcopy(observation))

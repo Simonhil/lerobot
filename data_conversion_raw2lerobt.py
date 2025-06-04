@@ -124,7 +124,7 @@ def get_trajectorie_paths_recursive(directory, sub_dir_list):
             sub_dir_list.append(directory) if entry == "images" else get_trajectorie_paths_recursive(full_path, sub_dir_list)
 
 if __name__ == "__main__":
-    data_path = "/home/i53/student/shilber/Downloads/Simulation/cube_transfer_right_2_left_50"
+    data_path = "/home/simon/collections/Simulation/cube_transfer_right_2_left_50"
     #embed = hub.load("https://tfhub.dev/google/universal-sentence-encoder-large/5")
     # create list of all examples
     repo_name = "simon/aloha_cube_transfer"
