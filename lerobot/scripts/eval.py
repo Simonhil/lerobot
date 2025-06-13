@@ -150,18 +150,15 @@ def rollout(
         observation = preprocess_observation(observation)
         if return_observations:
             all_observations.append(deepcopy(observation))
-
         observation = {
             key: observation[key].to(device, non_blocking=device.type == "cuda") for key in observation
         }
-
         # Infer "task" from attributes of environments.
         # TODO: works with SyncVectorEnv but not AsyncVectorEnv
         observation = add_envs_task(env, observation)
-
+    
         with torch.inference_mode():
             action = policy.select_action(observation)
-            print(torch.min(action))
         # Convert to CPU / numpy.
         action = action.to("cpu").numpy()
         assert action.ndim == 2, "Action dimensions should be (batch, action_dim)"

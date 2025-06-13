@@ -85,18 +85,18 @@ def _parse_example(episode_path, goal_dataset,embed=None):
         action_all_joint = torch.zeros(14)
         observation_all_joint = torch.zeros(14)
 
-        action_all_joint = data['leader_joint_pos'][i]
+        action_all_joint = np.float32(data['leader_joint_pos'][i])
     
 
 
-        observation_all_joint = data['follower_joint_pos'][i]
+        observation_all_joint = np.float32(data['follower_joint_pos'][i])
 
         goal_dataset.add_frame(
            {
                 "observation.images.overhead_cam":  data['image_top'][i],
         "observation.images.wrist_cam_left":data['image_wrist_left'][i],
         "observation.images.wrist_cam_right": data['image_wrist_right'][i],
-        "observation.state": observation_all_joint,
+        # "observation.state": observation_all_joint,
         "action": action_all_joint,
         "task":"cube_transfer"
            }
@@ -124,10 +124,10 @@ def get_trajectorie_paths_recursive(directory, sub_dir_list):
             sub_dir_list.append(directory) if entry == "images" else get_trajectorie_paths_recursive(full_path, sub_dir_list)
 
 if __name__ == "__main__":
-    data_path = "/home/i53/student/shilber/Downloads/Simulation/cube_transfer_right_2_left_50"
+    data_path = "/home/i53/student/shilber/Downloads/Simulation/cube_transfer_doub" 
     #embed = hub.load("https://tfhub.dev/google/universal-sentence-encoder-large/5")
     # create list of all examples
-    repo_name = "simon/aloha_cube_transfer"
+    repo_name = "simon/aloha_cube_transfer_test"
     raw_dirs = []
     get_trajectorie_paths_recursive(data_path, raw_dirs)
 
@@ -157,13 +157,13 @@ if __name__ == "__main__":
             "shape": (224,224, 3),
             "names": ["height", "width", "channel"],
         },
-        "observation.state": {
-            "dtype": "float64",
-            "shape": (14,),
-            "names": ["state"],
-        },
+        # "observation.state": {
+        #     "dtype": "float32",
+        #     "shape": (14,),
+        #     "names": ["state"],
+        # },
         "action": {
-            "dtype": "float64",
+            "dtype": "float32",
             "shape": (14,),
             "names": ["actions"],
         },

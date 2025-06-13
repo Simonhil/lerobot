@@ -46,8 +46,10 @@ Note that in both examples, the repo/folder should contain at least `config.json
 You can learn about the CLI options for this script in the `EvalPipelineConfig` in lerobot/configs/eval.py
 """
 
+import glob
 import json
 import logging
+import os
 import threading
 import time
 from contextlib import nullcontext
@@ -123,19 +125,42 @@ def rollout(
     """
 
     def load_lerobot():
-        repo_id = "simon/aloha_cube_transfer"
+        repo_id = "simon/aloha_cube_transfer_test"
         data=LeRobotDataset(repo_id)
         meta_data = LeRobotDatasetMetadata(repo_id)
         print(meta_data)
 
         return  data
+    def create_img_vector(img_folder_path):
+        cam_list = []
+    
+        img_paths = glob.glob(os.path.join(img_folder_path, '*.jpg'))
+        img_paths = sorted(img_paths, key=lambda x: float(Path(x).stem))
+    
+        
+
+        for img_path in img_paths:
+            img_array=cv2.imread(img_path)
+            img_array = cv2.cvtColor(cv2.imread(img_path), cv2.COLOR_RGB2BGR)
+            cam_list.append(img_array)
+        return cam_list
+
+   
+    episode_path="/home/i53/student/shilber/Downloads/Simulation/cube_transfer_doub/2025_06_04-14_18_57"
+    top_cam_path = os.path.join(episode_path, 'images/overhead_cam_orig')
+    wrist_left_cam_path = os.path.join(episode_path, 'images/wrist_cam_left_orig')
+    wrist_right_cam_path = os.path.join(episode_path, 'images/wrist_cam_right_orig')
+    # top_cam_path = os.path.join(episode_path, 'images/cam_high_orig')
+    # wrist_left_cam_path = os.path.join(episode_path, 'images/cam_left_wrist_orig')
+    # wrist_right_cam_path = os.path.join(episode_path, 'images/cam_right_wrist_orig')
+    top_cam_vector = create_img_vector(top_cam_path)
+    wrist_left_cam_vector = create_img_vector(wrist_left_cam_path)
+    wrist_right_cam_vector = create_img_vector(wrist_right_cam_path)
 
     data = load_lerobot()
+   
 
-
-
-
-
+    
 
 
     assert isinstance(policy, nn.Module), "Policy must be a PyTorch nn module."
@@ -164,45 +189,68 @@ def rollout(
         leave=False,
     )
     check_env_attributes_and_types(env)
+
+    obs_i = 0
     while not np.all(done):
-        # Numpy array to tensor and changing dictionary keys to LeRobot policy format.
-        observation = preprocess_observation(observation)
-    
         def show_images(images):
 
             # Show with OpenCV
             scale_factor = 0.75
             combined = np.concatenate(list(images.values()), axis=1)
             #resized = cv2.resize(combined, None, fx=scale_factor, fy=scale_factor, interpolation=cv2.INTER_LINEAR)
-            cv2.imshow("Multi-Camera Views", combined [..., ::-1])  # RGB to BGR
+            combined=combined.squeeze(0)
+            #combined=combined.transpose(1,2,0)
+            cv2.imwrite('/home/i53/student/shilber/models/act/pixels2/checkpoints/output.jpg', combined)
+            # cv2.imshow("Multi-Camera Views", combined)  # RGB to BGR
 
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                pass
-        show_images({"t":observation['observation.images.overhead_cam']})
+            # if cv2.waitKey(1) & 0xFF == ord('q'):
+            #     cv2.destroyAllWindows()
+        # Numpy array to tensor and changing dictionary keys to LeRobot policy format.
+        #print(observation["pixels"])\
+        #show_images({"t":observation["wrist_cam_left"]})
+        observation['overhead_cam']= np.expand_dims(top_cam_vector[step], axis=0)
+        observation['wrist_cam_right']= np.expand_dims(wrist_right_cam_vector[step], axis=0)
+        observation['wrist_cam_left']= np.expand_dims(wrist_left_cam_vector[step], axis=0)
+        observation = preprocess_observation(observation)
+        #show_images({"t":observation['observation.images.overhead_cam']})
+        
+        # if return_observations:
+        #     all_observations.append(deepcopy(observation))
+        observation1=data[step]
+        #print(observation['observation.images.overhead_cam'])
+        observation1 = {
+            key: observation1[key].unsqueeze(0) for key in observation1 if "observation" in key
+        }
+        # show_images({"t":observation1['observation.images.overhead_cam']})
+
+        observation1['observation.images.overhead_cam']= observation["observation.images.overhead_cam"]
+        observation1['observation.images.wrist_cam_right']= observation["observation.images.wrist_cam_right"]
+        observation1['observation.images.wrist_cam_left']= observation["observation.images.wrist_cam_left"]
+        observation1=observation
         print(observation.keys())
-    #     if return_observations:
-    #         all_observations.append(deepcopy(observation))
-        observation = {
-            key: observation[key].to(device, non_blocking=device.type == "cuda") for key in observation
+        observation1 = {
+            key: observation1[key].to(device, non_blocking=device.type == "cuda") for key in observation1
         }
 
         # Infer "task" from attributes of environments.
         # TODO: works with SyncVectorEnv but not AsyncVectorEnv
-        observation = add_envs_task(env, observation)
+        #observation = add_envs_task(env, observation)
 
         with torch.inference_mode():
-            action = policy.select_action(observation)
-            print(torch.min(action))
-        # Convert to CPU / numpy.
+            
+            action = policy.select_action(observation1)
+        #     print(torch.min(action))
+        # # Convert to CPU / numpy.
         action = action.to("cpu").numpy()
         assert action.ndim == 2, "Action dimensions should be (batch, action_dim)"
 
-        # Apply the next action.
-        action =np.asarray(torch.tensor(action))
-
-        # for i in range(0,len(data)):
-        #     action_all_joint = [data[i]['action']]
-        #     observation, reward, terminated, truncated, info = env.step(action_all_joint)
+        # # Apply the next action.
+        # action =np.asarray(torch.tensor(action))
+        print(step)
+        #print(data[obs_i].keys())
+        # action_all_joint = [data[step]['action']]
+        # observation, reward, terminated, truncated, info = env.step(action_all_joint)
+        # action=action_all_joint
         observation, reward, terminated, truncated, info = env.step(action) 
         if render_callback is not None:
             render_callback(env)
@@ -217,40 +265,40 @@ def rollout(
         # Keep track of which environments are done so far.
         done = terminated | truncated | done
 
-        all_actions.append(torch.from_numpy(action))
-        all_rewards.append(torch.from_numpy(reward))
-        all_dones.append(torch.from_numpy(done))
-        all_successes.append(torch.tensor(successes))
+        # all_actions.append(torch.from_numpy(action))
+        # all_rewards.append(torch.from_numpy(reward))
+        # all_dones.append(torch.from_numpy(done))
+        # all_successes.append(torch.tensor(successes))
 
         step += 1
-        running_success_rate = (
-            einops.reduce(torch.stack(all_successes, dim=1), "b n -> b", "any").numpy().mean()
-        )
-        progbar.set_postfix({"running_success_rate": f"{running_success_rate.item() * 100:.1f}%"})
-        progbar.update()
+        # running_success_rate = (
+        #     einops.reduce(torch.stack(all_successes, dim=1), "b n -> b", "any").numpy().mean()
+        # )
+        # progbar.set_postfix({"running_success_rate": f"{running_success_rate.item() * 100:.1f}%"})
+        # progbar.update()
 
-    # Track the final observation.
-    if return_observations:
-        observation = preprocess_observation(observation)
-        all_observations.append(deepcopy(observation))
+    # # Track the final observation.
+    # if return_observations:
+    #     observation = preprocess_observation(observation)
+    #     all_observations.append(deepcopy(observation))
 
-    # Stack the sequence along the first dimension so that we have (batch, sequence, *) tensors.
-    ret = {
-        "action": torch.stack(all_actions, dim=1),
-        "reward": torch.stack(all_rewards, dim=1),
-        "success": torch.stack(all_successes, dim=1),
-        "done": torch.stack(all_dones, dim=1),
-    }
-    if return_observations:
-        stacked_observations = {}
-        for key in all_observations[0]:
-            stacked_observations[key] = torch.stack([obs[key] for obs in all_observations], dim=1)
-        ret["observation"] = stacked_observations
+    # # Stack the sequence along the first dimension so that we have (batch, sequence, *) tensors.
+    # ret = {
+    #     "action": torch.stack(all_actions, dim=1),
+    #     "reward": torch.stack(all_rewards, dim=1),
+    #     "success": torch.stack(all_successes, dim=1),
+    #     "done": torch.stack(all_dones, dim=1),
+    # }
+    # if return_observations:
+    #     stacked_observations = {}
+    #     for key in all_observations[0]:
+    #         stacked_observations[key] = torch.stack([obs[key] for obs in all_observations], dim=1)
+    #     ret["observation"] = stacked_observations
 
-    if hasattr(policy, "use_original_modules"):
-        policy.use_original_modules()
+    # if hasattr(policy, "use_original_modules"):
+    #     policy.use_original_modules()
 
-    return ret
+    # return ret
 
 
 def eval_policy(
