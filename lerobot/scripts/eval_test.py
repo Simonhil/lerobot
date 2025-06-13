@@ -146,13 +146,10 @@ def rollout(
         return cam_list
 
    
-    episode_path="/home/i53/student/shilber/Downloads/Simulation/cube_transfer_doub/2025_06_04-14_18_57"
+    episode_path="/home/simon/collections/Simulation/cube_transfer_right_2_left_50/2025_06_13-10_11_51"
     top_cam_path = os.path.join(episode_path, 'images/overhead_cam_orig')
     wrist_left_cam_path = os.path.join(episode_path, 'images/wrist_cam_left_orig')
     wrist_right_cam_path = os.path.join(episode_path, 'images/wrist_cam_right_orig')
-    # top_cam_path = os.path.join(episode_path, 'images/cam_high_orig')
-    # wrist_left_cam_path = os.path.join(episode_path, 'images/cam_left_wrist_orig')
-    # wrist_right_cam_path = os.path.join(episode_path, 'images/cam_right_wrist_orig')
     top_cam_vector = create_img_vector(top_cam_path)
     wrist_left_cam_vector = create_img_vector(wrist_left_cam_path)
     wrist_right_cam_vector = create_img_vector(wrist_right_cam_path)
@@ -208,24 +205,30 @@ def rollout(
         # Numpy array to tensor and changing dictionary keys to LeRobot policy format.
         #print(observation["pixels"])\
         #show_images({"t":observation["wrist_cam_left"]})
-        observation['overhead_cam']= np.expand_dims(top_cam_vector[step], axis=0)
-        observation['wrist_cam_right']= np.expand_dims(wrist_right_cam_vector[step], axis=0)
-        observation['wrist_cam_left']= np.expand_dims(wrist_left_cam_vector[step], axis=0)
+        observation['overhead_cam']= np.expand_dims(cv2.cvtColor( observation['overhead_cam'].squeeze(0), cv2.COLOR_RGB2BGR), axis=0)
+        observation['wrist_cam_right']= np.expand_dims(cv2.cvtColor(observation['wrist_cam_right'].squeeze(0), cv2.COLOR_RGB2BGR), axis=0)
+        observation['wrist_cam_left']= np.expand_dims(cv2.cvtColor( observation['wrist_cam_left'].squeeze(0), cv2.COLOR_RGB2BGR), axis=0)
+        # observation['overhead_cam']= np.expand_dims(top_cam_vector[step], axis=0)
+        # observation['wrist_cam_right']= np.expand_dims(wrist_right_cam_vector[step], axis=0)
+        # observation['wrist_cam_left']= np.expand_dims(wrist_left_cam_vector[step], axis=0)
         observation = preprocess_observation(observation)
-        #show_images({"t":observation['observation.images.overhead_cam']})
+        # #show_images({"t":observation['observation.images.overhead_cam']})
         
-        # if return_observations:
-        #     all_observations.append(deepcopy(observation))
+        # # if return_observations:
+        # #     all_observations.append(deepcopy(observation))
         observation1=data[step]
         #print(observation['observation.images.overhead_cam'])
+
+
+
         observation1 = {
             key: observation1[key].unsqueeze(0) for key in observation1 if "observation" in key
         }
         # show_images({"t":observation1['observation.images.overhead_cam']})
 
-        observation1['observation.images.overhead_cam']= observation["observation.images.overhead_cam"]
-        observation1['observation.images.wrist_cam_right']= observation["observation.images.wrist_cam_right"]
-        observation1['observation.images.wrist_cam_left']= observation["observation.images.wrist_cam_left"]
+        # observation1['observation.images.overhead_cam']= observation["observation.images.overhead_cam"]
+        # observation1['observation.images.wrist_cam_right']= observation["observation.images.wrist_cam_right"]
+        # observation1['observation.images.wrist_cam_left']= observation["observation.images.wrist_cam_left"]
         observation1=observation
         print(observation.keys())
         observation1 = {
