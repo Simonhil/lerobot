@@ -50,12 +50,12 @@ def _parse_example(episode_path, goal_dataset,embed=None):
 
 
   
-    top_cam_path = os.path.join(episode_path, 'images/overhead_cam_orig')
-    wrist_left_cam_path = os.path.join(episode_path, 'images/wrist_cam_left_orig')
-    wrist_right_cam_path = os.path.join(episode_path, 'images/wrist_cam_right_orig')
-    # top_cam_path = os.path.join(episode_path, 'images/cam_high_orig')
-    # wrist_left_cam_path = os.path.join(episode_path, 'images/cam_left_wrist_orig')
-    # wrist_right_cam_path = os.path.join(episode_path, 'images/cam_right_wrist_orig')
+    # top_cam_path = os.path.join(episode_path, 'images/overhead_cam_orig')
+    # wrist_left_cam_path = os.path.join(episode_path, 'images/wrist_cam_left_orig')
+    # wrist_right_cam_path = os.path.join(episode_path, 'images/wrist_cam_right_orig')
+    top_cam_path = os.path.join(episode_path, 'images/image_top_orig')
+    wrist_left_cam_path = os.path.join(episode_path, 'images/image_wrist_left_orig')
+    wrist_right_cam_path = os.path.join(episode_path, 'images/image_wrist_right_orig')
     top_cam_vector = create_img_vector(top_cam_path, trajectory_length)
     wrist_left_cam_vector = create_img_vector(wrist_left_cam_path, trajectory_length)
     wrist_right_cam_vector = create_img_vector(wrist_right_cam_path, trajectory_length)
@@ -108,7 +108,7 @@ def create_img_vector(img_folder_path, trajectory_length):
   
     img_paths = glob.glob(os.path.join(img_folder_path, '*.jpg'))
     img_paths = sorted(img_paths, key=lambda x: float(Path(x).stem))
-   
+    print(img_folder_path)
     assert len(img_paths)==trajectory_length, "Number of images does not equal trajectory length!"
 
     for img_path in img_paths:
@@ -125,12 +125,14 @@ def get_trajectorie_paths_recursive(directory, sub_dir_list):
             sub_dir_list.append(directory) if entry == "images" else get_trajectorie_paths_recursive(full_path, sub_dir_list)
 
 if __name__ == "__main__":
-    data_path = "/home/simon/collections/Simulation/cube_transfer_right_2_left_50" 
+    data_path = "/home/simon/collections/Simulations/join_wall_100.0_cropped" 
+    #data_path1 = "/home/simon/collections/Simulations/ball_maze_50.1_cropped" 
     #embed = hub.load("https://tfhub.dev/google/universal-sentence-encoder-large/5")
     # create list of all examples
-    repo_name = "simon/aloha_cube_transfer_test"
+    repo_name = "simon/join_wall_v1"
     raw_dirs = []
     get_trajectorie_paths_recursive(data_path, raw_dirs)
+    #get_trajectorie_paths_recursive(data_path1, raw_dirs)
 
 
 

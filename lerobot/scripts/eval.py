@@ -219,7 +219,7 @@ def eval_policy(
     env: gym.vector.VectorEnv,
     policy: PreTrainedPolicy,
     n_episodes: int,
-    max_episodes_rendered: int = 0,
+    max_episodes_rendered: int = 4,
     videos_dir: Path | None = None,
     return_episode_data: bool = False,
     start_seed: int | None = None,
@@ -346,9 +346,13 @@ def eval_policy(
             for stacked_frames, done_index in zip(
                 batch_stacked_frames, done_indices.flatten().tolist(), strict=False
             ):
+               
                 if n_episodes_rendered >= max_episodes_rendered:
                     break
-
+                stacked_view = []
+                for frame in stacked_frames:
+                    view=frame['overhead_cam']
+                    stacked_view.append(view)
                 videos_dir.mkdir(parents=True, exist_ok=True)
                 video_path = videos_dir / f"eval_episode_{n_episodes_rendered}.mp4"
                 video_paths.append(str(video_path))
@@ -356,7 +360,7 @@ def eval_policy(
                     target=write_video,
                     args=(
                         str(video_path),
-                        stacked_frames[: done_index + 1],  # + 1 to capture the last observation
+                        stacked_view[: done_index + 1],  # + 1 to capture the last observation
                         env.unwrapped.metadata["render_fps"],
                     ),
                 )
