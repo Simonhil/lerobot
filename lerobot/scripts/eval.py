@@ -148,9 +148,12 @@ def rollout(
     check_env_attributes_and_types(env)
     while not np.all(done):
         # Numpy array to tensor and changing dictionary keys to LeRobot policy format.
-        observation['overhead_cam']= np.expand_dims(cv2.cvtColor( observation['overhead_cam'].squeeze(0), cv2.COLOR_RGB2BGR), axis=0)
-        observation['wrist_cam_right']= np.expand_dims(cv2.cvtColor(observation['wrist_cam_right'].squeeze(0), cv2.COLOR_RGB2BGR), axis=0)
-        observation['wrist_cam_left']= np.expand_dims(cv2.cvtColor( observation['wrist_cam_left'].squeeze(0), cv2.COLOR_RGB2BGR), axis=0)
+        observation["pixels"]['overhead_cam']= np.expand_dims(cv2.cvtColor( observation["pixels"]['overhead_cam'].squeeze(0), cv2.COLOR_RGB2BGR), axis=0)
+        observation["pixels"]['wrist_cam_right']= np.expand_dims(cv2.cvtColor(observation["pixels"]['wrist_cam_right'].squeeze(0), cv2.COLOR_RGB2BGR), axis=0)
+        observation["pixels"]['wrist_cam_left']= np.expand_dims(cv2.cvtColor( observation["pixels"]['wrist_cam_left'].squeeze(0), cv2.COLOR_RGB2BGR), axis=0)
+        # observation['overhead_cam']= np.expand_dims(cv2.cvtColor( observation['overhead_cam'].squeeze(0), cv2.COLOR_RGB2BGR), axis=0)
+        # observation['wrist_cam_right']= np.expand_dims(cv2.cvtColor(observation['wrist_cam_right'].squeeze(0), cv2.COLOR_RGB2BGR), axis=0)
+        # observation['wrist_cam_left']= np.expand_dims(cv2.cvtColor( observation['wrist_cam_left'].squeeze(0), cv2.COLOR_RGB2BGR), axis=0)
         observation = preprocess_observation(observation)
         if return_observations:
             all_observations.append(deepcopy(observation))

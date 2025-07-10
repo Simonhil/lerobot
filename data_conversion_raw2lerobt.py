@@ -125,14 +125,18 @@ def get_trajectorie_paths_recursive(directory, sub_dir_list):
             sub_dir_list.append(directory) if entry == "images" else get_trajectorie_paths_recursive(full_path, sub_dir_list)
 
 if __name__ == "__main__":
-    data_path = "/home/simon/collections/Simulations/join_wall_100.0_cropped" 
-    #data_path1 = "/home/simon/collections/Simulations/ball_maze_50.1_cropped" 
+    data_path = "/home/i53/student/shilber/Downloads/download_2025-07-08_14-39-46/join_wall_100.0_cropped" 
+    data_path1 = "/home/i53/student/shilber/Downloads/download_2025-07-08_14-39-46/join_wall_100.1_cropped"  
+    #data_path2 = "/home/i53/student/shilber/Downloads/download_2025-07-08_14-40-14/put_in_box_100.0"
+    #data_path3 = "/home/i53/student/shilber/Downloads/download_2025-07-02_10-13-07/cube_transfer_right_2_left_50.1_random"
     #embed = hub.load("https://tfhub.dev/google/universal-sentence-encoder-large/5")
     # create list of all examples
-    repo_name = "simon/join_wall_v1"
+    repo_name = "simon/wall_visual_200"
     raw_dirs = []
     get_trajectorie_paths_recursive(data_path, raw_dirs)
-    #get_trajectorie_paths_recursive(data_path1, raw_dirs)
+    get_trajectorie_paths_recursive(data_path1, raw_dirs)
+    #get_trajectorie_paths_recursive(data_path2, raw_dirs)
+    #get_trajectorie_paths_recursive(data_path3, raw_dirs)
 
 
 
