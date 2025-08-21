@@ -361,12 +361,24 @@ class ACT(nn.Module):
             self.encoder_img_feat_input_proj = nn.Conv2d(
                 backbone_model.fc.in_features, config.dim_model, kernel_size=1
             )
+
+        #TODO NEW
+        if self.config.language_feature:
+            self.encoder_language_input_proj = nn.Linear(
+            self.config.language_feature.shape[0], config.dim_model
+        )
+        
         # Transformer encoder positional embeddings.
         n_1d_tokens = 1  # for the latent
         if self.config.robot_state_feature:
             n_1d_tokens += 1
         if self.config.env_state_feature:
             n_1d_tokens += 1
+
+        #TODO NEW
+        if self.config.language_feature:
+            n_1d_tokens += 1
+
         self.encoder_1d_feature_pos_embed = nn.Embedding(n_1d_tokens, config.dim_model)
         if self.config.image_features:
             self.encoder_cam_feat_pos_embed = ACTSinusoidalPositionEmbedding2d(config.dim_model // 2)
@@ -385,6 +397,16 @@ class ACT(nn.Module):
         for p in chain(self.encoder.parameters(), self.decoder.parameters()):
             if p.dim() > 1:
                 nn.init.xavier_uniform_(p)
+
+    
+
+    #TODO NEW get pretrained clip
+    import clip
+    self.clip_device = "cuda" if torch.cuda.is_available() else "cpu"
+    self.clip_model, self.clip_preprocess = clip.load("ViT-B/32", device=device)
+
+
+
 
     def forward(self, batch: dict[str, Tensor]) -> tuple[Tensor, tuple[Tensor, Tensor] | tuple[None, None]]:
         """A forward pass through the Action Chunking Transformer (with optional VAE encoder).
@@ -405,6 +427,16 @@ class ACT(nn.Module):
             Tuple containing the latent PDF's parameters (mean, log(σ²)) both as (B, L) tensors where L is the
             latent dimension.
         """
+
+    
+        #TODO NEW get_language_embeding
+        text=batch["language"]
+        clip_inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True)
+        clip_text_features = model.encode_text(text)
+        batch["language"] = clip_text_features
+
+
+
         if self.config.use_vae and self.training:
             assert "action" in batch, (
                 "actions must be provided when using the variational objective in training mode."
@@ -426,10 +458,17 @@ class ACT(nn.Module):
                 robot_state_embed = robot_state_embed.unsqueeze(1)  # (B, 1, D)
             action_embed = self.vae_encoder_action_input_proj(batch["action"])  # (B, S, D)
 
+            #TODO New
+            language_embed = None
+            if self.config.language_feature and "language" in batch:
+                language_embed = self.vae_encoder_latent_output_proj(batch["language"])  # (B, D)
+                language_embed = language_embed.unsqueeze(1)  # (B, 1, D)
+
+
             if self.config.robot_state_feature:
-                vae_encoder_input = [cls_embed, robot_state_embed, action_embed]  # (B, S+2, D)
+                vae_encoder_input = [cls_embed, robot_state_embed, action_embed, language_embed]  # (B, S+2, D)
             else:
-                vae_encoder_input = [cls_embed, action_embed]
+                vae_encoder_input = [cls_embed, action_embed, language_embed]
             vae_encoder_input = torch.cat(vae_encoder_input, axis=1)
 
             # Prepare fixed positional embedding.
