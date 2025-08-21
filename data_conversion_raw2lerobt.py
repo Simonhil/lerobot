@@ -16,7 +16,7 @@ import tensorflow_datasets as tfds
 from lerobot.common.datasets.lerobot_dataset import HF_LEROBOT_HOME
 from lerobot.common.datasets.lerobot_dataset import LeRobotDataset
 
-def _parse_example(episode_path, goal_dataset,embed=None, language):
+def _parse_example(episode_path, goal_dataset,embed=None, language=""):
     data = {}
     # leader_path = os.path.join(episode_path, 'leader/*.pt')
     # follower_path = os.path.join(episode_path, 'follower/*.pt')
@@ -33,7 +33,7 @@ def _parse_example(episode_path, goal_dataset,embed=None, language):
     # for file in glob.glob(episode_path):
     #     name = 'des_' + Path(file).stem
     #     data.update({name : torch.load(file)})
-
+    print(name)
     trajectory_length = len(data[list(data.keys())[0]])
     
     for feature in list(data.keys()):
@@ -49,13 +49,15 @@ def _parse_example(episode_path, goal_dataset,embed=None, language):
 
 
 
-  
+    top_cam_path = os.path.join(episode_path, 'images/CAM_TOP_orig')
+    wrist_left_cam_path = os.path.join(episode_path, 'images/CAM_LEFT_orig')
+    wrist_right_cam_path = os.path.join(episode_path, 'images/CAM_RIGHT_orig')
     # top_cam_path = os.path.join(episode_path, 'images/overhead_cam_orig')
     # wrist_left_cam_path = os.path.join(episode_path, 'images/wrist_cam_left_orig')
     # wrist_right_cam_path = os.path.join(episode_path, 'images/wrist_cam_right_orig')
-    top_cam_path = os.path.join(episode_path, 'images/image_top_orig')
-    wrist_left_cam_path = os.path.join(episode_path, 'images/image_wrist_left_orig')
-    wrist_right_cam_path = os.path.join(episode_path, 'images/image_wrist_right_orig')
+    # top_cam_path = os.path.join(episode_path, 'images/image_top_orig')
+    # wrist_left_cam_path = os.path.join(episode_path, 'images/image_wrist_left_orig')
+    # wrist_right_cam_path = os.path.join(episode_path, 'images/image_wrist_right_orig')
     top_cam_vector = create_img_vector(top_cam_path, trajectory_length)
     wrist_left_cam_vector = create_img_vector(wrist_left_cam_path, trajectory_length)
     wrist_right_cam_vector = create_img_vector(wrist_right_cam_path, trajectory_length)
@@ -98,7 +100,7 @@ def _parse_example(episode_path, goal_dataset,embed=None, language):
         "observation.images.wrist_cam_right": data['image_wrist_right'][i],
         "observation.state": observation_all_joint,
         "action": action_all_joint,
-        "language" : language
+        "language" : language,
         "task":"cube_transfer"
            }
        )
@@ -126,16 +128,14 @@ def get_trajectorie_paths_recursive(directory, sub_dir_list):
             sub_dir_list.append(directory) if entry == "images" else get_trajectorie_paths_recursive(full_path, sub_dir_list)
 
 if __name__ == "__main__":
-    data_path = "/home/i53/student/shilber/Downloads/download_2025-07-08_14-39-46/join_wall_100.0_cropped" 
-    data_path1 = "/home/i53/student/shilber/Downloads/download_2025-07-08_14-39-46/join_wall_100.1_cropped"  
-    #data_path2 = "/home/i53/student/shilber/Downloads/download_2025-07-08_14-40-14/put_in_box_100.0"
-    #data_path3 = "/home/i53/student/shilber/Downloads/download_2025-07-02_10-13-07/cube_transfer_right_2_left_50.1_random"
+    data_path = "/home/i53/student/shilber/Downloads/download_2025-08-21_14-41-16/50_blue_cube_multiple_cubes" 
+    data_path1 = "/home/i53/student/shilber/Downloads/download_2025-08-21_14-41-16/50_gree_cube_multiple_cubes"  
+    data_path2 = "/home/i53/student/shilber/Downloads/download_2025-08-21_14-41-16/50_orange_cube_multiple_cubes"
+    data_path3 = "/home/i53/student/shilber/Downloads/download_2025-08-21_14-41-16/50_red_cube_multiple_cubes"
     #embed = hub.load("https://tfhub.dev/google/universal-sentence-encoder-large/5")
     # create list of all examples
     repo_name = "simon/multiple_cubes"
-    raw_dirs = []
-    get_trajectorie_paths_recursive(data_path, raw_dirs)
-    get_trajectorie_paths_recursive(data_path1, raw_dirs)
+    #get_trajectorie_paths_recursive(data_path1, raw_dirs)
     #get_trajectorie_paths_recursive(data_path2, raw_dirs)
     #get_trajectorie_paths_recursive(data_path3, raw_dirs)
 
@@ -178,31 +178,32 @@ if __name__ == "__main__":
          
         "language": {
             "dtype": "string",
-            "shape": (),
-            "names": ["language"],
+            "shape": (1,),
+            "names": "language",
         },
     },
     image_writer_threads=10,
     image_writer_processes=5,
 )
 
-
+    raw_dirs = []
+    get_trajectorie_paths_recursive(data_path, raw_dirs)
     for trajectorie_path in tqdm(raw_dirs):
-        _parse_example(trajectorie_path, goal_dataset)
+        _parse_example(trajectorie_path, goal_dataset, language="transfer blue cube")
 
         #print(sample)
 
     raw_dirs = []
     get_trajectorie_paths_recursive(data_path1, raw_dirs)
     for trajectorie_path in tqdm(raw_dirs):
-    _parse_example(trajectorie_path, goal_dataset)
+        _parse_example(trajectorie_path, goal_dataset, language="transfer green cube")
 
     raw_dirs = []
     get_trajectorie_paths_recursive(data_path2, raw_dirs)
     for trajectorie_path in tqdm(raw_dirs):
-    _parse_example(trajectorie_path, goal_dataset)
+        _parse_example(trajectorie_path, goal_dataset, language="transfer orange cube")
 
     raw_dirs = []
     get_trajectorie_paths_recursive(data_path3, raw_dirs)
     for trajectorie_path in tqdm(raw_dirs):
-    _parse_example(trajectorie_path, goal_dataset, language="transfer_blue_cube")
+        _parse_example(trajectorie_path, goal_dataset, language="transfer red cube")
