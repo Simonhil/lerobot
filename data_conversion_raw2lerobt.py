@@ -16,7 +16,7 @@ import tensorflow_datasets as tfds
 from lerobot.common.datasets.lerobot_dataset import HF_LEROBOT_HOME
 from lerobot.common.datasets.lerobot_dataset import LeRobotDataset
 
-def _parse_example(episode_path, goal_dataset,embed=None):
+def _parse_example(episode_path, goal_dataset,embed=None, language):
     data = {}
     # leader_path = os.path.join(episode_path, 'leader/*.pt')
     # follower_path = os.path.join(episode_path, 'follower/*.pt')
@@ -96,8 +96,9 @@ def _parse_example(episode_path, goal_dataset,embed=None):
                 "observation.images.overhead_cam":  data['image_top'][i],
         "observation.images.wrist_cam_left":data['image_wrist_left'][i],
         "observation.images.wrist_cam_right": data['image_wrist_right'][i],
-        # "observation.state": observation_all_joint,
+        "observation.state": observation_all_joint,
         "action": action_all_joint,
+        "language" : language
         "task":"cube_transfer"
            }
        )
@@ -131,7 +132,7 @@ if __name__ == "__main__":
     #data_path3 = "/home/i53/student/shilber/Downloads/download_2025-07-02_10-13-07/cube_transfer_right_2_left_50.1_random"
     #embed = hub.load("https://tfhub.dev/google/universal-sentence-encoder-large/5")
     # create list of all examples
-    repo_name = "simon/wall_visual_200"
+    repo_name = "simon/multiple_cubes"
     raw_dirs = []
     get_trajectorie_paths_recursive(data_path, raw_dirs)
     get_trajectorie_paths_recursive(data_path1, raw_dirs)
@@ -164,15 +165,21 @@ if __name__ == "__main__":
             "shape": (224,224, 3),
             "names": ["height", "width", "channel"],
         },
-        # "observation.state": {
-        #     "dtype": "float32",
-        #     "shape": (14,),
-        #     "names": ["state"],
-        # },
+        "observation.state": {
+            "dtype": "float32",
+            "shape": (14,),
+            "names": ["state"],
+        },
         "action": {
             "dtype": "float32",
             "shape": (14,),
             "names": ["actions"],
+        },
+         
+        "language": {
+            "dtype": "string",
+            "shape": (),
+            "names": ["language"],
         },
     },
     image_writer_threads=10,
@@ -182,4 +189,20 @@ if __name__ == "__main__":
 
     for trajectorie_path in tqdm(raw_dirs):
         _parse_example(trajectorie_path, goal_dataset)
+
         #print(sample)
+
+    raw_dirs = []
+    get_trajectorie_paths_recursive(data_path1, raw_dirs)
+    for trajectorie_path in tqdm(raw_dirs):
+    _parse_example(trajectorie_path, goal_dataset)
+
+    raw_dirs = []
+    get_trajectorie_paths_recursive(data_path2, raw_dirs)
+    for trajectorie_path in tqdm(raw_dirs):
+    _parse_example(trajectorie_path, goal_dataset)
+
+    raw_dirs = []
+    get_trajectorie_paths_recursive(data_path3, raw_dirs)
+    for trajectorie_path in tqdm(raw_dirs):
+    _parse_example(trajectorie_path, goal_dataset, language="transfer_blue_cube")
