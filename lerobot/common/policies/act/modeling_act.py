@@ -151,7 +151,6 @@ class ACTPolicy(PreTrainedPolicy):
 
         batch = self.normalize_targets(batch)
         actions_hat, (mu_hat, log_sigma_x2_hat) = self.model(batch)
-
         l1_loss = (
             F.l1_loss(batch["action"], actions_hat, reduction="none") * ~batch["action_is_pad"].unsqueeze(-1)
         ).mean()
@@ -318,6 +317,18 @@ class ACT(nn.Module):
                 self.config.action_feature.shape[0],
                 config.dim_model,
             )
+            
+
+            #TODO NEW 
+            self.vae_encoder_language_input_proj = nn.Linear(
+                512,
+                config.dim_model
+            )
+
+
+
+
+
             # Projection layer from the VAE encoder's output to the latent distribution's parameter space.
             self.vae_encoder_latent_output_proj = nn.Linear(config.dim_model, config.latent_dim * 2)
             # Fixed sinusoidal positional embedding for the input to the VAE encoder. Unsqueeze for batch
@@ -325,6 +336,7 @@ class ACT(nn.Module):
             num_input_token_encoder = 1 + config.chunk_size
             if self.config.robot_state_feature:
                 num_input_token_encoder += 1
+                num_input_token_encoder += 1 #for langauge
             self.register_buffer(
                 "vae_encoder_pos_enc",
                 create_sinusoidal_pos_embedding(num_input_token_encoder, config.dim_model).unsqueeze(0),
@@ -365,7 +377,7 @@ class ACT(nn.Module):
         #TODO NEW
         if self.config.language_feature:
             self.encoder_language_input_proj = nn.Linear(
-            self.config.language_feature.shape[0], config.dim_model
+            512, config.dim_model
         )
         
         # Transformer encoder positional embeddings.
@@ -376,8 +388,8 @@ class ACT(nn.Module):
             n_1d_tokens += 1
 
         #TODO NEW
-        if self.config.language_feature:
-            n_1d_tokens += 1
+        #if self.config.language_feature:
+        #n_1d_tokens += 1
 
         self.encoder_1d_feature_pos_embed = nn.Embedding(n_1d_tokens, config.dim_model)
         if self.config.image_features:
@@ -400,12 +412,7 @@ class ACT(nn.Module):
 
     
 
-    #TODO NEW get pretrained clip
-    import clip
-    self.clip_device = "cuda" if torch.cuda.is_available() else "cpu"
-    self.clip_model, self.clip_preprocess = clip.load("ViT-B/32", device=device)
-
-
+   
 
 
     def forward(self, batch: dict[str, Tensor]) -> tuple[Tensor, tuple[Tensor, Tensor] | tuple[None, None]]:
@@ -428,12 +435,18 @@ class ACT(nn.Module):
             latent dimension.
         """
 
+        #TODO NEW get pretrained clip
+        import clip
+        self.clip_device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.clip_model, self.clip_preprocess = clip.load("ViT-B/32", device=self.clip_device)
+
+
     
         #TODO NEW get_language_embeding
         text=batch["language"]
-        clip_inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True)
-        clip_text_features = model.encode_text(text)
-        batch["language"] = clip_text_features
+        clip_inputs = clip.tokenize(text).to(self.clip_device)
+        clip_text_features = self.clip_model.encode_text(clip_inputs)
+        batch["language"] = clip_text_features.to(torch.float32)
 
 
 
@@ -460,10 +473,9 @@ class ACT(nn.Module):
 
             #TODO New
             language_embed = None
-            if self.config.language_feature and "language" in batch:
-                language_embed = self.vae_encoder_latent_output_proj(batch["language"])  # (B, D)
+            if  "language" in batch:
+                language_embed = self.vae_encoder_language_input_proj(batch["language"])  # (B, D)
                 language_embed = language_embed.unsqueeze(1)  # (B, 1, D)
-
 
             if self.config.robot_state_feature:
                 vae_encoder_input = [cls_embed, robot_state_embed, action_embed, language_embed]  # (B, S+2, D)
@@ -474,17 +486,17 @@ class ACT(nn.Module):
             # Prepare fixed positional embedding.
             # Note: detach() shouldn't be necessary but leaving it the same as the original code just in case.
             pos_embed = self.vae_encoder_pos_enc.clone().detach()  # (1, S+2, D)
-
             # Prepare key padding mask for the transformer encoder. We have 1 or 2 extra tokens at the start of the
             # sequence depending whether we use the input states or not (cls and robot state)
             # False means not a padding token.
             cls_joint_is_pad = torch.full(
-                (batch_size, 2 if self.config.robot_state_feature else 1),
+                (batch_size, 3 if self.config.robot_state_feature else 2), #1 + 1 for llanguage
                 False,
                 device=batch["action"].device,
             )
+            #print(batch["action_is_pad"].shape)
             key_padding_mask = torch.cat(
-                [cls_joint_is_pad, batch["action_is_pad"]], axis=1
+                [cls_joint_is_pad, batch["action_is_pad"]], axis=1 
             )  # (bs, seq+1 or 2)
 
             # Forward pass through VAE encoder to get the latent PDF parameters.
@@ -585,9 +597,9 @@ class ACTEncoder(nn.Module):
             x = layer(x, pos_embed=pos_embed, key_padding_mask=key_padding_mask)
         x = self.norm(x)
         return x
-
-
+#run = 0
 class ACTEncoderLayer(nn.Module):
+
     def __init__(self, config: ACTConfig):
         super().__init__()
         self.self_attn = nn.MultiheadAttention(config.dim_model, config.n_heads, dropout=config.dropout)
@@ -605,7 +617,11 @@ class ACTEncoderLayer(nn.Module):
         self.activation = get_activation_fn(config.feedforward_activation)
         self.pre_norm = config.pre_norm
 
+    
     def forward(self, x, pos_embed: Tensor | None = None, key_padding_mask: Tensor | None = None) -> Tensor:
+        # global run
+        # print("\n\n\n\n run" + str(run))
+        # run += 1
         skip = x
         if self.pre_norm:
             x = self.norm1(x)

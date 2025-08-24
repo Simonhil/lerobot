@@ -275,6 +275,7 @@ def train(cfg: TrainPipelineConfig):
             logging.info(eval_tracker)
             if wandb_logger:
                 wandb_log_dict = {**eval_tracker.to_dict(), **eval_info}
+                print(wandb_log_dict)
                 wandb_logger.log_dict(wandb_log_dict, step, mode="eval")
                 wandb_logger.log_video(eval_info["video_paths"][0], step, mode="eval")
 

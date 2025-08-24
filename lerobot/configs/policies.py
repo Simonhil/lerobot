@@ -108,6 +108,13 @@ class PreTrainedConfig(draccus.ChoiceRegistry, HubMixin, abc.ABC):
             if ft.type is FeatureType.STATE:
                 return ft
         return None
+    
+    @property
+    def language_feature(self) -> PolicyFeature | None:
+        for _, ft in self.input_features.items():
+            if ft.type is FeatureType.LANGUAGE:
+                return ft
+        return None
 
     @property
     def env_state_feature(self) -> PolicyFeature | None:
