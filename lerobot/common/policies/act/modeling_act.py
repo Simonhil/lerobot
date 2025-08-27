@@ -262,7 +262,9 @@ class ACTTemporalEnsembler:
         )
         return action
 
-
+#TODO NEW get pretrained clip
+import clip
+        
 class ACT(nn.Module):
     """Action Chunking Transformer: The underlying neural network for ACTPolicy.
 
@@ -302,6 +304,8 @@ class ACT(nn.Module):
         # BERT style VAE encoder with input tokens [cls, robot_state, *action_sequence].
         # The cls token forms parameters of the latent's distribution (like this [*means, *log_variances]).
         super().__init__()
+        self.clip_device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.clip_model, self.clip_preprocess = clip.load("ViT-B/32", device=self.clip_device)
         self.config = config
 
         if self.config.use_vae:
@@ -435,10 +439,7 @@ class ACT(nn.Module):
             latent dimension.
         """
 
-        #TODO NEW get pretrained clip
-        import clip
-        self.clip_device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.clip_model, self.clip_preprocess = clip.load("ViT-B/32", device=self.clip_device)
+        
 
 
     
