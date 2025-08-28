@@ -151,6 +151,9 @@ class ACTPolicy(PreTrainedPolicy):
 
         batch = self.normalize_targets(batch)
         actions_hat, (mu_hat, log_sigma_x2_hat) = self.model(batch)
+
+       
+        
         l1_loss = (
             F.l1_loss(batch["action"], actions_hat, reduction="none") * ~batch["action_is_pad"].unsqueeze(-1)
         ).mean()
@@ -444,10 +447,16 @@ class ACT(nn.Module):
 
     
         #TODO NEW get_language_embeding
-        text=batch["language"]
-        clip_inputs = clip.tokenize(text).to(self.clip_device)
-        clip_text_features = self.clip_model.encode_text(clip_inputs)
-        batch["language"] = clip_text_features.to(torch.float32)
+        with torch.no_grad(), torch.cuda.amp.autocast(enabled=False):
+            text=batch["language"]
+            clip_inputs = clip.tokenize(text).to(self.clip_device)
+            clip_text_features = self.clip_model.encode_text(clip_inputs)
+            batch["language"] = clip_text_features.to(torch.float32)
+
+            # print("\n\n\n\n\n language")
+            # #print(batch["action"].shape)
+            # print(clip_inputs)
+            # print(clip_text_features)
 
 
 
@@ -477,6 +486,7 @@ class ACT(nn.Module):
             if  "language" in batch:
                 language_embed = self.vae_encoder_language_input_proj(batch["language"])  # (B, D)
                 language_embed = language_embed.unsqueeze(1)  # (B, 1, D)
+            
 
             if self.config.robot_state_feature:
                 vae_encoder_input = [cls_embed, robot_state_embed, action_embed, language_embed]  # (B, S+2, D)
