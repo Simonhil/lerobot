@@ -134,7 +134,7 @@ class VQBeTPolicy(PreTrainedPolicy):
 
         batch = self.normalize_inputs(batch)
         batch = dict(batch)  # shallow copy so that adding a key doesn't modify the original
-        batch["observation.images"] = torch.stack([batch[key] for key in self.config.image_features], dim=-4)
+        #batch["observation.images"] = torch.stack([batch[key] for key in self.config.image_features], dim=-4)
         # Note: It's important that this happens after stacking the images into a single key.
         self._queues = populate_queues(self._queues, batch)
 
@@ -160,7 +160,7 @@ class VQBeTPolicy(PreTrainedPolicy):
         """Run the batch through the model and compute the loss for training or validation."""
         batch = self.normalize_inputs(batch)
         batch = dict(batch)  # shallow copy so that adding a key doesn't modify the original
-        batch["observation.images"] = torch.stack([batch[key] for key in self.config.image_features], dim=-4)
+        #batch["observation.images"] = torch.stack([batch[key] for key in self.config.image_features], dim=-4)
         batch = self.normalize_targets(batch)
         # VQ-BeT discretizes action using VQ-VAE before training BeT (please refer to section 3.2 in the VQ-BeT paper https://arxiv.org/pdf/2403.03181)
         if not self.vqbet.action_head.vqvae_model.discretized.item():

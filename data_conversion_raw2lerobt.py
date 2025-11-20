@@ -3,7 +3,7 @@ import shutil
 import os
 import cv2
 from typing import Iterator, Tuple, Any
-from scipy.spatial.transform import Rotation
+#from scipy.spatial.transform import Rotation
 
 import glob
 import numpy as np
@@ -11,7 +11,7 @@ from tqdm import tqdm
 import torch
 from pathlib import Path
 import numpy as np
-import tensorflow_datasets as tfds
+#import tensorflow_datasets as tfds
 # import matplotlib.pyplot as plt
 from lerobot.common.datasets.lerobot_dataset import HF_LEROBOT_HOME
 from lerobot.common.datasets.lerobot_dataset import LeRobotDataset
@@ -49,13 +49,15 @@ def _parse_example(episode_path, goal_dataset,embed=None):
 
 
 
-  
-    # top_cam_path = os.path.join(episode_path, 'images/overhead_cam_orig')
-    # wrist_left_cam_path = os.path.join(episode_path, 'images/wrist_cam_left_orig')
-    # wrist_right_cam_path = os.path.join(episode_path, 'images/wrist_cam_right_orig')
-    top_cam_path = os.path.join(episode_path, 'images/image_top_orig')
-    wrist_left_cam_path = os.path.join(episode_path, 'images/image_wrist_left_orig')
-    wrist_right_cam_path = os.path.join(episode_path, 'images/image_wrist_right_orig')
+    # top_cam_path = os.path.join(episode_path, 'images/CAM_TOP_orig')
+    # wrist_left_cam_path = os.path.join(episode_path, 'images/CAM_LEFT_orig')
+    # wrist_right_cam_path = os.path.join(episode_path, 'images/CAM_RIGHT_orig')
+    top_cam_path = os.path.join(episode_path, 'images/overhead_cam_orig')
+    wrist_left_cam_path = os.path.join(episode_path, 'images/wrist_cam_left_orig')
+    wrist_right_cam_path = os.path.join(episode_path, 'images/wrist_cam_right_orig')
+    # top_cam_path = os.path.join(episode_path, 'images/image_top_orig')
+    # wrist_left_cam_path = os.path.join(episode_path, 'images/image_wrist_left_orig')
+    # wrist_right_cam_path = os.path.join(episode_path, 'images/image_wrist_right_orig')
     top_cam_vector = create_img_vector(top_cam_path, trajectory_length)
     wrist_left_cam_vector = create_img_vector(wrist_left_cam_path, trajectory_length)
     wrist_right_cam_vector = create_img_vector(wrist_right_cam_path, trajectory_length)
@@ -96,7 +98,7 @@ def _parse_example(episode_path, goal_dataset,embed=None):
                 "observation.images.overhead_cam":  data['image_top'][i],
         "observation.images.wrist_cam_left":data['image_wrist_left'][i],
         "observation.images.wrist_cam_right": data['image_wrist_right'][i],
-        # "observation.state": observation_all_joint,
+        "observation.state": observation_all_joint,
         "action": action_all_joint,
         "task":"cube_transfer"
            }
@@ -125,17 +127,17 @@ def get_trajectorie_paths_recursive(directory, sub_dir_list):
             sub_dir_list.append(directory) if entry == "images" else get_trajectorie_paths_recursive(full_path, sub_dir_list)
 
 if __name__ == "__main__":
-    data_path = "/home/i53/student/shilber/Downloads/download_2025-07-08_14-39-46/join_wall_100.0_cropped" 
-    data_path1 = "/home/i53/student/shilber/Downloads/download_2025-07-08_14-39-46/join_wall_100.1_cropped"  
-    #data_path2 = "/home/i53/student/shilber/Downloads/download_2025-07-08_14-40-14/put_in_box_100.0"
+    data_path = "/home/simon/Downloads/cube_transfer_100.0" 
+    # data_path1 = "/home/simon/Downloads/Maze/ball_maze_50.1_cropped"  
+    # data_path2 = "/home/simon/Downloads/Maze/ball_maze_100_cropped"
     #data_path3 = "/home/i53/student/shilber/Downloads/download_2025-07-02_10-13-07/cube_transfer_right_2_left_50.1_random"
     #embed = hub.load("https://tfhub.dev/google/universal-sentence-encoder-large/5")
     # create list of all examples
-    repo_name = "simon/wall_visual_200"
+    repo_name = "simon/transfer_proprio_50"
     raw_dirs = []
     get_trajectorie_paths_recursive(data_path, raw_dirs)
-    get_trajectorie_paths_recursive(data_path1, raw_dirs)
-    #get_trajectorie_paths_recursive(data_path2, raw_dirs)
+    # get_trajectorie_paths_recursive(data_path1, raw_dirs)
+    # get_trajectorie_paths_recursive(data_path2, raw_dirs)
     #get_trajectorie_paths_recursive(data_path3, raw_dirs)
 
 
@@ -164,11 +166,11 @@ if __name__ == "__main__":
             "shape": (224,224, 3),
             "names": ["height", "width", "channel"],
         },
-        # "observation.state": {
-        #     "dtype": "float32",
-        #     "shape": (14,),
-        #     "names": ["state"],
-        # },
+        "observation.state": {
+            "dtype": "float32",
+            "shape": (14,),
+            "names": ["state"],
+        },
         "action": {
             "dtype": "float32",
             "shape": (14,),
@@ -179,7 +181,10 @@ if __name__ == "__main__":
     image_writer_processes=5,
 )
 
-
+    i = 0
     for trajectorie_path in tqdm(raw_dirs):
+        if i == 50:
+            break
         _parse_example(trajectorie_path, goal_dataset)
         #print(sample)
+        i += 1

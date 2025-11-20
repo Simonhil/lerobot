@@ -58,6 +58,7 @@ from pprint import pformat
 from typing import Callable
 
 import cv2
+print(cv2.__file__)
 import einops
 import gymnasium as gym
 import numpy as np
@@ -148,9 +149,12 @@ def rollout(
     check_env_attributes_and_types(env)
     while not np.all(done):
         # Numpy array to tensor and changing dictionary keys to LeRobot policy format.
-        observation["pixels"]['overhead_cam']= np.expand_dims(cv2.cvtColor( observation["pixels"]['overhead_cam'].squeeze(0), cv2.COLOR_RGB2BGR), axis=0)
-        observation["pixels"]['wrist_cam_right']= np.expand_dims(cv2.cvtColor(observation["pixels"]['wrist_cam_right'].squeeze(0), cv2.COLOR_RGB2BGR), axis=0)
-        observation["pixels"]['wrist_cam_left']= np.expand_dims(cv2.cvtColor( observation["pixels"]['wrist_cam_left'].squeeze(0), cv2.COLOR_RGB2BGR), axis=0)
+        observation["pixels"]['overhead_cam'] = np.array([cv2.cvtColor(frame, cv2.COLOR_RGB2BGR) for frame in observation["pixels"]['overhead_cam']])
+        observation["pixels"]['wrist_cam_right'] = np.array([cv2.cvtColor(frame, cv2.COLOR_RGB2BGR) for frame in observation["pixels"]['wrist_cam_right']])
+        observation["pixels"]['wrist_cam_left'] = np.array([cv2.cvtColor(frame, cv2.COLOR_RGB2BGR) for frame in observation["pixels"]['wrist_cam_left']])
+        # observation["pixels"]['overhead_cam']= np.expand_dims(cv2.cvtColor( observation["pixels"]['overhead_cam'].squeeze(0), cv2.COLOR_RGB2BGR), axis=0)
+        # observation["pixels"]['wrist_cam_right']= np.expand_dims(cv2.cvtColor(observation["pixels"]['wrist_cam_right'].squeeze(0), cv2.COLOR_RGB2BGR), axis=0)
+        # observation["pixels"]['wrist_cam_left']= np.expand_dims(cv2.cvtColor( observation["pixels"]['wrist_cam_left'].squeeze(0), cv2.COLOR_RGB2BGR), axis=0)
         # observation['overhead_cam']= np.expand_dims(cv2.cvtColor( observation['overhead_cam'].squeeze(0), cv2.COLOR_RGB2BGR), axis=0)
         # observation['wrist_cam_right']= np.expand_dims(cv2.cvtColor(observation['wrist_cam_right'].squeeze(0), cv2.COLOR_RGB2BGR), axis=0)
         # observation['wrist_cam_left']= np.expand_dims(cv2.cvtColor( observation['wrist_cam_left'].squeeze(0), cv2.COLOR_RGB2BGR), axis=0)
@@ -163,7 +167,6 @@ def rollout(
         # Infer "task" from attributes of environments.
         # TODO: works with SyncVectorEnv but not AsyncVectorEnv
         observation = add_envs_task(env, observation)
-    
         with torch.inference_mode():
             action = policy.select_action(observation)
         # Convert to CPU / numpy.
@@ -198,6 +201,7 @@ def rollout(
         progbar.set_postfix({"running_success_rate": f"{running_success_rate.item() * 100:.1f}%"})
         progbar.update()
 
+
     # Track the final observation.
     if return_observations:
         observation = preprocess_observation(observation)
@@ -226,7 +230,7 @@ def eval_policy(
     env: gym.vector.VectorEnv,
     policy: PreTrainedPolicy,
     n_episodes: int,
-    max_episodes_rendered: int = 4,
+    max_episodes_rendered: int = 0,
     videos_dir: Path | None = None,
     return_episode_data: bool = False,
     start_seed: int | None = None,
@@ -483,7 +487,7 @@ def eval_main(cfg: EvalPipelineConfig):
     env = make_env(cfg.env, n_envs=cfg.eval.batch_size, use_async_envs=cfg.eval.use_async_envs)
 
     logging.info("Making policy.")
-
+    print(cfg)
     policy = make_policy(
         cfg=cfg.policy,
         env_cfg=cfg.env,
@@ -495,7 +499,7 @@ def eval_main(cfg: EvalPipelineConfig):
             env,
             policy,
             cfg.eval.n_episodes,
-            max_episodes_rendered=10,
+            max_episodes_rendered=0,
             videos_dir=Path(cfg.output_dir) / "videos",
             start_seed=cfg.seed,
         )

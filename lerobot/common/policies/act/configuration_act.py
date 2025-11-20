@@ -92,17 +92,15 @@ class ACTConfig(PreTrainedConfig):
 
     # Input / output structure.
     n_obs_steps: int = 1
-    chunk_size: int = 100 #100
-    n_action_steps: int = 20 #100
-
+    chunk_size: int =100 #200
+    n_action_steps: int =100
     normalization_mapping: dict[str, NormalizationMode] = field(
-        default_factory=lambda: {
-            "VISUAL": NormalizationMode.MEAN_STD,
-            "STATE": NormalizationMode.MEAN_STD,
-            "ACTION": NormalizationMode.MEAN_STD,
-        }
+    default_factory=lambda: {
+    "VISUAL": NormalizationMode.MEAN_STD,
+    "STATE": NormalizationMode.MEAN_STD,
+    "ACTION": NormalizationMode.MEAN_STD,
+    }
     )
-
     # Architecture.
     # Vision backbone.
     vision_backbone: str = "resnet18"
@@ -118,24 +116,21 @@ class ACTConfig(PreTrainedConfig):
     # Note: Although the original ACT implementation has 7 for `n_decoder_layers`, there is a bug in the code
     # that means only the first layer is used. Here we match the original implementation by setting this to 1.
     # See this issue https://github.com/tonyzhaozh/act/issues/25#issue-2258740521.
-    n_decoder_layers: int = 1
+    n_decoder_layers: int =1 #originally 1
     # VAE.
     use_vae: bool = True
     latent_dim: int = 32
     n_vae_encoder_layers: int = 4
-
     # Inference.
     # Note: the value used in ACT when temporal ensembling is enabled is 0.01.
     temporal_ensemble_coeff: float | None = None
-
     # Training and loss computation.
-    dropout: float = 0.1
+    dropout: float = 0.1 #0.1
     kl_weight: float = 10.0
-
     # Training preset
-    optimizer_lr: float = 1e-5
+    optimizer_lr: float = 1e-5#1e-5
     optimizer_weight_decay: float = 1e-4
-    optimizer_lr_backbone: float = 1e-5
+    optimizer_lr_backbone: float =1e-5# 1e-5
 
     def __post_init__(self):
         super().__post_init__()

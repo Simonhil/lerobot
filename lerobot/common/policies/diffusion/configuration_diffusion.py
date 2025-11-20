@@ -104,9 +104,9 @@ class DiffusionConfig(PreTrainedConfig):
     """
 
     # Inputs / output structure.
-    n_obs_steps: int = 2
-    horizon: int = 16
-    n_action_steps: int = 8
+    n_obs_steps: int = 8
+    horizon: int = 64
+    n_action_steps: int = 64
 
     normalization_mapping: dict[str, NormalizationMode] = field(
         default_factory=lambda: {
@@ -123,7 +123,7 @@ class DiffusionConfig(PreTrainedConfig):
     # Architecture / modeling.
     # Vision backbone.
     vision_backbone: str = "resnet18"
-    crop_shape: tuple[int, int] | None = (84, 84)
+    crop_shape: tuple[int, int] | None =  None #(84, 84)
     crop_is_random: bool = True
     pretrained_backbone_weights: str | None = None
     use_group_norm: bool = True
@@ -152,7 +152,7 @@ class DiffusionConfig(PreTrainedConfig):
     do_mask_loss_for_padding: bool = False
 
     # Training presets
-    optimizer_lr: float = 1e-4
+    optimizer_lr: float = 1e-5
     optimizer_betas: tuple = (0.95, 0.999)
     optimizer_eps: float = 1e-8
     optimizer_weight_decay: float = 1e-6
