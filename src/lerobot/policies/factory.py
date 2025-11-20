@@ -40,6 +40,7 @@ from lerobot.policies.smolvla.configuration_smolvla import SmolVLAConfig
 from lerobot.policies.tdmpc.configuration_tdmpc import TDMPCConfig
 from lerobot.policies.utils import validate_visual_features_consistency
 from lerobot.policies.vqbet.configuration_vqbet import VQBeTConfig
+from lerobot.policies.BESO.beso_config import BesoConfig
 from lerobot.processor import PolicyAction, PolicyProcessorPipeline
 from lerobot.processor.converters import (
     batch_to_transition,
@@ -107,6 +108,9 @@ def get_policy_class(name: str) -> type[PreTrainedPolicy]:
         from lerobot.policies.groot.modeling_groot import GrootPolicy
 
         return GrootPolicy
+    elif name == "beso":
+        from lerobot.policies.BESO.modelling_beso import BesoPolicy
+        return BesoPolicy
     else:
         raise NotImplementedError(f"Policy with name {name} is not implemented.")
 

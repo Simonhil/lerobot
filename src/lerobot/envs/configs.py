@@ -73,10 +73,10 @@ class EnvConfig(draccus.ChoiceRegistry, abc.ABC):
 class AlohaEnv(EnvConfig):
     task: str | None = "AlohaInsertion-v0"
     fps: int = 50
-    episode_length: int = 400
+    episode_length: int = 250
     obs_type: str = "pixels_agent_pos"
-    observation_height: int = 480
-    observation_width: int = 640
+    observation_height: int = 240
+    observation_width: int = 240
     render_mode: str = "rgb_array"
     features: dict[str, PolicyFeature] = field(
         default_factory=lambda: {
@@ -87,8 +87,9 @@ class AlohaEnv(EnvConfig):
         default_factory=lambda: {
             ACTION: ACTION,
             "agent_pos": OBS_STATE,
-            "top": f"{OBS_IMAGE}.top",
-            "pixels/top": f"{OBS_IMAGES}.top",
+            "pixels/overhead_cam": f"{OBS_IMAGES}.overhead_cam",
+            "pixels/wrist_cam_left": f"{OBS_IMAGES}.wrist_cam_left",
+            "pixels/wrist_cam_right": f"{OBS_IMAGES}.wrist_cam_right",
         }
     )
 
