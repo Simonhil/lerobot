@@ -33,7 +33,7 @@ def cfg_to_group(cfg: TrainPipelineConfig, return_list: bool = False) -> list[st
         f"seed:{cfg.seed}",
     ]
     if cfg.dataset is not None:
-        lst.append(f"dataset:{cfg.dataset.repo_id}")
+        lst.append(f"dataset:{os.path.basename(cfg.dataset.repo_id)}")
     if cfg.env is not None:
         lst.append(f"env:{cfg.env.type}")
     return lst if return_list else "-".join(lst)
