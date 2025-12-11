@@ -110,6 +110,13 @@ def get_policy_class(name: str) -> type[PreTrainedPolicy]:
         from lerobot.policies.groot.modeling_groot import GrootPolicy
 
         return GrootPolicy
+    elif name == "beso":
+        from lerobot.policies.BESO.modelling_beso import BesoPolicy
+        return BesoPolicy
+    elif name == "beastf":
+        from lerobot.policies.beastf.modeling_beastf import BeastVLAPolicy
+
+        return BeastVLAPolicy
     else:
         try:
             return _get_policy_cls_from_policy_name(name=name)
