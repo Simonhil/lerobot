@@ -100,8 +100,6 @@ class BesoPolicy(PreTrainedPolicy):
             batch.pop(ACTION)
         batch = self.normalize_inputs(batch)
         if self.config.image_features: 
-            print("\n\n\n\n\n\n\n")
-            print(self.config.image_features.keys())
             batch = dict(batch)  # shallow copy so that adding a key doesn't modify the original
             batch[OBS_IMAGES] = torch.stack([batch[key] for key in self.config.image_features], dim=-4)
         # NOTE: It's important that this happens after stacking the images into a single key.
@@ -150,7 +148,7 @@ class BesoModel(nn.Module):
         if self.config.env_state_feature:
             global_cond_dim += self.config.env_state_feature.shape[0]
         self.dit_backbone = Noise_Dec_only(
-            state_dim=global_cond_dim*2,
+            state_dim=global_cond_dim*config.n_obs_steps,
             action_dim=self.config.action_feature.shape[0],
             goal_dim=0,
             device="cuda",  # Default device, will be moved to correct device automatically by PyTorch
