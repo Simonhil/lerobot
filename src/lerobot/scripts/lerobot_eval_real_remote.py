@@ -62,7 +62,6 @@ from pprint import pformat
 from typing import Any, TypedDict
 
 import einops
-import gymnasium as gym
 import numpy as np
 import torch
 from termcolor import colored
@@ -71,7 +70,6 @@ from tqdm import trange
 
 from lerobot.configs import parser
 from lerobot.configs.eval import EvalPipelineConfig
-from lerobot.envs.factory import make_env, make_env_pre_post_processors
 from lerobot.envs.utils import (
     add_envs_task,
     check_env_attributes_and_types,
@@ -83,7 +81,7 @@ from lerobot.policies.pretrained import PreTrainedPolicy
 from lerobot.processor import PolicyAction, PolicyProcessorPipeline
 from lerobot.utils.constants import ACTION, DONE, OBS_STR, REWARD
 from lerobot.utils.import_utils import register_third_party_plugins
-from lerobot.utils.io_utils import write_video
+
 from lerobot.utils.random_utils import set_seed
 from lerobot.utils.utils import (
     get_safe_torch_device,
@@ -94,6 +92,40 @@ from lerobot.utils.utils import (
 
 
 from flask import Flask, request, jsonify
+
+def convert_observation_to_hf_format(observation, device, language, has_language):
+    top = np.asarray(observation["images_top"]) / 255.0
+    left = np.asarray(observation["images_wrist_left"]) / 255.0
+    right = np.asarray(observation["images_wrist_right"]) / 255.0
+
+
+    state = np.asarray(observation["state"], dtype=np.float32)
+    state = torch.from_numpy(state).to(device=device, dtype=torch.float32)
+    state = einops.rearrange(state, "s -> 1 s" )
+
+    top = einops.rearrange(torch.from_numpy(top), 'h w c -> 1 c h w').to(device=device, dtype=state.dtype)
+    left = einops.rearrange(torch.from_numpy(left), 'h w c -> 1 c h w').to(device=device, dtype=state.dtype) 
+    right = einops.rearrange(torch.from_numpy(right), 'h w c -> 1 c h w').to(device=device, dtype=state.dtype) 
+
+    # images = torch.vstack([top, left, right]).to(device=device)
+    # obs = {"images_top": top,
+    #         "images_wrist_left": left,
+    #         "images_wrist_right": right,
+    #         "observation.state": state}
+    if has_language:
+        obs = {"observation.images.overhead_cam": top,
+        "observation.images.wrist_cam_left": left,
+        "observation.images.wrist_cam_right": right,
+        "observation.state": state,
+        "language": language}
+    else:
+        obs = {"observation.images.overhead_cam": top,
+            "observation.images.wrist_cam_left": left,
+            "observation.images.wrist_cam_right": right,
+            "observation.state": state}
+
+    
+    return obs
 
 
 app = Flask(__name__)
@@ -152,6 +184,10 @@ def eval_main(cfg: EvalPipelineConfig):
     # Close all vec envs
 
     logging.info("End of eval")
+
+
+
+
 @app.route('/eval', methods=['POST'])
 def eval():
     global policy, preprocessor, postprocessor, device
@@ -159,22 +195,25 @@ def eval():
     observation = data.get("observation")
     instruction = data.get("instruction")
 
+    print("\n\n\n\n\n\n")
+    print(observation.keys())
+    observation = convert_observation_to_hf_format(observation, device="cuda", language=instruction, has_language=True)
+    print(observation.keys())
 
-
-    observation = preprocess_observation(observation)
-
-    observation = preprocessor(observation)
+    # observation = preprocess_observation(observation)
+    # observation = preprocessor(observation)
     with torch.inference_mode():
-        action = policy.select_action(observation)
+        action = policy.predict_action_chunk(observation)
     action = postprocessor(action)
 
     action_transition = {"action": action}
-    action = action_transition["action"]
+    action = action_transition["action"][0]
 
     # Convert to CPU / numpy.
     action_numpy: np.ndarray = action.to("cpu").numpy()
+    print(action_numpy.shape)
     assert action_numpy.ndim == 2, "Action dimensions should be (batch, action_dim)"
-    return jsonify({"action" : action})
+    return jsonify({"action" : action_numpy.tolist()})
 
 def main():
     register_third_party_plugins()
@@ -182,5 +221,5 @@ def main():
 
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=8000)
     main()
+    app.run(host='0.0.0.0', port=8000)
