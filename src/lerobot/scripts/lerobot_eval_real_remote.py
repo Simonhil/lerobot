@@ -185,8 +185,10 @@ def eval_main(cfg: EvalPipelineConfig):
 
     logging.info("End of eval")
 
-
-
+@app.route('/reset', methods=['POST'])
+def reset_policy():
+    global policy, preprocessor, postprocessor, device
+    policy.reset()
 
 @app.route('/eval', methods=['POST'])
 def eval():
